@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class 7 SS Quiz PRO - શ્રી પાનસડા અનુપમ પ્રાથમિક શાળા</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+    /* CSS: ગેમનું આકર્ષક લુક અને એનિમેશન */
+    body { margin:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height:100vh; display:flex; justify-content:center; align-items:center; background:#1a1a2e; }
+    .hidden { display:none !important; }
+    .card { max-width: 650px; width: 90%; margin: 20px; padding: 30px; border-radius: 30px; border: 4px solid #ffffff; position: relative; padding-bottom: 70px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); background: linear-gradient(120deg, #ff9a9e, #fad0c4, #a18cd1, #fbc2eb); background-size: 400% 400%; animation: riverFlow 15s ease infinite; }
+    @keyframes riverFlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    .p_info { position: absolute; bottom: 15px; left: 25px; font-size: 13px; opacity:0.85; user-select: none; }
+    header { display: flex; align-items: center; justify-content: center; min-height: 90px; text-align: center; margin-bottom: 20px; }
+    h1 { color: #4a148c; margin: 0; font-size: 24px; }
+    p { color: #d81b60; font-weight: bold; margin: 5px 0 0 0; }
+    input, select, button { width:100%; padding:14px; margin:8px 0; border-radius:12px; border:none; font-size:16px; background:#f5f5f5; box-sizing: border-box; }
+    button { background: linear-gradient(to right, #673ab7, #9c27b0); color:#fff; font-weight:bold; cursor:pointer; transition: 0.3s; }
+    button:hover { transform: scale(1.02); filter: brightness(1.1); }
+    .option { padding: 15px; border-radius: 12px; margin: 10px 0; background: #ffffff; color: #333; cursor: pointer; border: 2px solid #e0e0e0; font-weight: 600; transition: 0.3s; text-align: left; }
+    .option:hover { background: #673ab7; color: white; }
+    .right { background: #2ecc71 !important; color: white !important; }
+    .wrong { background: #e74c3c !important; color: white !important; }
+    .top { display:flex; justify-content:space-between; font-weight:bold; margin-bottom:15px; }
+    #table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
+    #table th { background: #4a148c; color: white; padding: 10px; font-size: 12px; }
+    #table td { padding: 8px; border: 1px solid #eee; text-align: center; font-size: 12px; }
+    .count-badge { background: #4a148c; color: white; padding: 8px 20px; border-radius: 20px; font-size: 18px; margin-bottom: 15px; display: inline-block; }
+    .palette { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 20px; }
+    .palette button { width: 30px; height: 30px; border-radius: 50%; background: #fff; color: #673ab7; font-size: 10px; border:none; cursor: pointer; }
+</style>
+</head>
+<body>
+
+    <audio id="sound-correct" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="sound-wrong" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
+
+    <div class="card" id="home">
+        <header>
+            <div>
+                <h1>શ્રી પાનસડા અનુપમ પ્રાથમિક શાળા</h1>
+                <p>ધો. 7 સામાજિક વિજ્ઞાન (પાઠ 5-9)</p>
+            </div>
+        </header>
+        <input id="roll" type="number" placeholder="રોલ નંબર લખો">
+        <input id="studentName" placeholder="વિદ્યાર્થીનું પૂરું નામ લખો">
+        <select id="subject" onchange="loadChapters()">
+            <option value="">વિષય પસંદ કરો</option>
+            <option value="ss">સામાજિક વિજ્ઞાન</option>
+        </select>
+        <select id="chapter"><option value="">પાઠ પસંદ કરો</option></select>
+        <button id="startBtn" onclick="checkAndStart()">ક્વિઝ શરૂ કરો</button>
+        <button onclick="openTeacher()" style="background:#444;">👨‍🏫 શિક્ષક લોગિન</button>
+    </div>
+
+    <div class="card hidden" id="quiz">
+        <div class="top"><div id="progress"></div><div id="timer" style="color: #4a148c; font-size: 20px; font-weight: bold;">⏱ 20</div></div>
+        <h3 id="q" style="text-align: left;"></h3>
+        <div id="opts"></div>
+        <div id="palette" class="palette"></div>
+    </div>
+
+    <div class="card hidden" id="result">
+        <div id="result-container" style="text-align: center;"></div>
+        <button onclick="goHome()">🏠 મુખ્ય મેનુ</button>
+    </div>
+
+    <div class="card hidden" id="teacherLoginBox">
+        <h3>શિક્ષક લોગિન</h3>
+        <input type="password" id="tpass" placeholder="પાસવર્ડ લખો">
+        <button onclick="teacherLogin()">LOGIN</button>
+        <button onclick="goHome()" style="background:#444;">🏠 HOME</button>
+    </div>
+
+    <div class="card hidden" id="teacher" style="max-width: 95%;">
+        <h3>📊 પરિણામ પત્રક</h3>
+        <center><div class="count-badge">કુલ વિદ્યાર્થીઓ: <span id="studentCount">0</span></div></center>
+        <div style="overflow-x: auto;">
+            <table id="table">
+                <thead><tr><th>રોલ</th><th>નામ</th><th>પાઠ</th><th>સ્કોર</th><th>ટકા</th><th>તારીખ</th></tr></thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+        <br>
+        <button onclick="downloadExcel()">📥 Excel Download</button>
+        <button onclick="clearAllResults()" style="background:#e74c3c;">🗑️ બધું ડિલીટ કરો</button>
+        <button onclick="goHome()" style="background:#444;">🏠 મુખ્ય મેનુ</button>
+    </div>
+
+<script>
+// --- FIREBASE CONFIGURATION ---
+const firebaseConfig = {
+  apiKey: "AIzaSyBeJLIE01_u33bl_68rfyfPqE_R6X70mY",
+  authDomain: "school-game-8e60d.firebaseapp.com",
+  databaseURL: "https://school-game-8e60d-default-rtdb.firebaseio.com",
+  projectId: "school-game-8e60d",
+  storageBucket: "school-game-8e60d.firebasestorage.app",
+  messagingSenderId: "587816348375",
+  appId: "1:587816348375:web:c843f96fe67907572623f9"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// --- QUIZ DATA: પ્રશ્નોનું લિસ્ટ ---
+const DATA = {
+    ss: {
+        "પાઠ 5: આદિવાસી (જનજાતિઓ)": [
+            {q:"અકબરના સેનાપતિ રાજા માનસિંહે કઈ જનજાતિ પર હુમલો કરી પરાજિત કરી હતી?", o:["ગોંડ", "ચેર", "ભીલ", "બલોચ"], a:"ચેર"},
+            {q:"અહૌમ રાજ્યમાં રાજ્ય દ્વારા બળજબરીથી કામ કરતા લોકો શું કહેવાતા?", o:["ખેલ", "પાઈક", "ટાંડા", "ભુઈયા"], a:"પાઈક"},
+            {q:"ગોંડ રાજ્યમાં ગામોના કયા સમૂહને 'ચોર્યાસી' તરીકે ઓળખવામાં આવતું?", o:["12 ગામો", "24 ગામો", "84 ગામો", "50 ગામો"], a:"84 ગામો"},
+            {q:"પશ્ચિમ અને મધ્ય ભારતમાં કઈ મોટી જનજાતિ ફેલાયેલી હતી?", o:["ખોખર", "નાગા", "સંથાલ", "ભીલ"], a:"ભીલ"},
+            {q:"મુઘલ સેનાએ કોની આગેવાનીમાં ગઢ કટંગા પર હુમલો કરી વિજય મેળવ્યો હતો?", o:["આસફખાન", "બૈરમખાન", "માનસિંહ", "ટોડરમલ"], a:"આસફખાન"},
+            {q:"અહૌમ લોકોએ કઈ જૂની રાજકીય વ્યવસ્થાને બદલીને નવું રાજ્ય સ્થાપ્યું હતું?", o:["સામંતોની", "ભુઈયાની", "ચક્રવર્તીઓની", "સુબાઓની"], a:"ભુઈયાની"},
+            {q:"ગઢ કટંગાના ગોંડ રાજા અમનદાસે કયો ખિતાબ ધારણ કર્યો હતો?", o:["સંગ્રામશાહ", "વીરશાહ", "રત્નશાહ", "દલપતશાહ"], a:"સંગ્રામશાહ"},
+            {q:"અહૌમ સમાજના કુળને કયા નામે ઓળખવામાં આવતું હતું?", o:["ખેલ", "ટાંડા", "કબીલા", "ગોત્ર"], a:"ખેલ"},
+            {q:"દુનિયાની સૌથી મોટી જનજાતિઓમાંની એક જનજાતિ કઈ છે?", o:["નાગા", "ભીલ", "ગોંડ", "અહૌમ"], a:"ગોંડ"},
+            {q:"અહૌમ રાજા રુદ્રસિંહના સમયમાં કયો ધર્મ મુખ્ય ધર્મ બન્યો હતો?", o:["હિન્દુ", "બૌદ્ધ", "જૈન", "ઇસ્લામ"], a:"હિન્દુ"},
+            {q:"ચોર્યાસી ગામોનો પેટા એકમ 'બારહોત' કેટલા ગામોનો બનેલો હતો?", o:["84", "12", "24", "7"], a:"12"},
+            {q:"13મી-14મી સદી દરમિયાન પંજાબમાં કઈ મુખ્ય જનજાતિ હતી?", o:["ગખ્ખર", "ખોખર", "બંને", "કોઈ નહીં"], a:"બંને"},
+            {q:"મુલ્તાન અને સિંધમાં કઈ જાતિઓનું આધિપત્ય હતું?", o:["લંઘા અને અરઘુન", "નાગા", "ખોખર", "ભીલ"], a:"લંઘા અને અરઘુન"},
+            {q:"ઉત્તર-પશ્ચિમ ભારતમાં સૌથી શક્તિશાળી જનજાતિ કઈ હતી?", o:["બલોચ", "મુઘલ", "ચેર", "કુકી"], a:"બલોચ"},
+            {q:"પશ્ચિમ હિમાલયમાં કઈ જનજાતિ રહેતી હતી?", o:["ગડ્ડી ગડરિયો", "ખાસી", "સંથાલ", "મુંડા"], a:"ગડ્ડી ગડરિયો"},
+            {q:"બિહાર અને ઝારખંડના વિસ્તારોમાં કઈ જનજાતિનું વર્ચસ્વ હતું?", o:["સંથાલ અને મુંડા", "ભીલ", "અહૌમ", "નાગા"], a:"સંથાલ અને મુંડા"},
+            {q:"મહારાષ્ટ્ર અને કર્ણાટકના ડુંગરાળ વિસ્તારોમાં કઈ જાતિઓ રહેતી?", o:["કોળી અને બેરાદ", "ગોંડ", "બલોચ", "નાગા"], a:"કોળી અને બેરાદ"},
+            {q:"ગોંડ લોકો કયા પ્રકારની ખેતી કરતા હતા?", o:["સ્થાયી", "બાગાયતી", "સ્થળાંતરિત", "આધુનિક"], a:"સ્થળાંતરિત"},
+            {q:"ગોંડ શાસક દલપતની પત્નીનું નામ શું હતું?", o:["દુર્ગાવતી", "ચંદનબા", "મીરાંબાઈ", "પદ્મિની"], a:"દુર્ગાવતી"},
+            {q:"ગઢ કટંગા રાજ્ય શેના વેપાર દ્વારા પુષ્કળ ધન મેળવતું હતું?", o:["ઘોડા", "મસાલા", "હાથીઓ", "કાપડ"], a:"હાથીઓ"}
+        ],
+        "પાઠ 6: વિચારતી અને વિમુક્ત જાતિઓ": [
+            {q:"વણજારાઓના સમૂહને કયા નામે ઓળખવામાં આવતો?", o:["ટાંડા", "ટોળી", "સંઘ", "ખેલ"], a:"ટાંડા"},
+            {q:"ભારત સરકારે વિચારતી જાતિઓને કયા વર્ષમાં કાળા કાયદામાંથી મુક્ત કરી?", o:["1947", "1952", "1950", "1960"], a:"1952"},
+            {q:"અંગ્રેજ સરકારે કયો કાયદો અમલમાં મૂકી વિચારતી જાતિઓને ગુનેગાર ગણાવી હતી?", o:["ક્રિમિનલ ટ્રાઈબ્ઝ એક્ટ", "ટ્રાઇબલ એક્ટ", "બંને", "કોઈ નહીં"], a:"ક્રિમિનલ ટ્રાઈબ્ઝ એક્ટ"},
+            {q:"ગુજરાતમાં ૨૦૨૦ મુજબ વિચારતી જાતિઓમાં કેટલી જાતિઓનો સમાવેશ છે?", o:["12", "15", "28", "40"], a:"28"},
+            {q:"કોના સમયમાં વણજારાઓ સૈન્ય માટે અનાજ અને ચીજવસ્તુઓ લાવતા હતા?", o:["બાબર", "ઔરંગઝેબ", "અલાઉદ્દીન ખલજી", "અકબર"], a:"અલાઉદ્દીન ખલજી"},
+            {q:"કાંગસિયા અને મોઢવા કયા પ્રકારના વેપાર સાથે જોડાયેલા હતા?", o:["અનાજ", "પશુ", "કાપડ", "સૌંદર્ય-પ્રસાધન"], a:"સૌંદર્ય-પ્રસાધન"},
+            {q:"અંગકસરતના દાવ દ્વારા લોકોનું મનોરંજન કરતી વિચારતી જાતિ કઈ છે?", o:["બજાણિયા", "ભવૈયા", "રબારી", "વણજારા"], a:"બજાણિયા"},
+            {q:"વિચરતી જાતિઓ અનાજના બદલામાં પશુપાલકો પાસેથી શું મેળવતી?", o:["પૈસા", "ઘી અને ઊન", "વાસણ", "કપડાં"], a:"ઘી અને ઊન"},
+            {q:"કયા મુઘલ બાદશાહે વણજારાઓના કાર્યોનો ઉલ્લેખ પોતાના સંસ્મરણોમાં કર્યો છે?", o:["બાબર", "અકબર", "જહાંગીર", "શાહજહાં"], a:"જહાંગીર"},
+            {q:"ગુજરાતની કઈ વિચારતી જાતિ કચ્છ અને બનાસકાંઠામાં વધુ જોવા મળે છે?", o:["મારવાડી રેબારી", "વણજારા", "નાથ", "ગારુડી"], a:"મારવાડી રેબારી"},
+            {q:"જાદુના ખેલ અને સાપના ખેલ બતાવી મનોરંજન કરતી જાતિ કઈ છે?", o:["નાથ-ગારુડી", "બજાણિયા", "ભવૈયા", "રાવળ"], a:"નાથ-ગારુડી"},
+            {q:"વાંસમાંથી ટોપલા અને ચટાઈ બનાવવાનું કામ કઈ જાતિ કરતી?", o:["સલાટ", "વાંસફોડા", "કાંગસિયા", "રાવળ"], a:"વાંસફોડા"},
+            {q:"માટીકામ અને પથ્થરના કામ (સલાટ કામ) માટે જાણીતી વિચારતી જાતિ કઈ છે?", o:["બજાણિયા", "વાંસફોડા", "સલાટ", "મોઢવા"], a:"સલાટ"},
+            {q:"બણજારાઓના ટાંડામાં આશરે કેટલા લોકો રહેતા હતા?", o:["100-200", "સો-બસ્સો", "ઘણાં બધાં", "પાંચસો"], a:"ઘણાં બધાં"},
+            {q:"વિચરતી અને વિમુક્ત જાતિઓનું મુખ્ય સાધન કયું હતું?", o:["નોકરી", "ખેતી", "પશુપાલન", "ઉદ્યોગ"], a:"પશુપાલન"},
+            {q:"કઈ જાતિ પથ્થર અને ઘાસની સાદડીઓ બનાવતી જોવા મળે છે?", o:["કાંગસિયા", "સલાટ", "વણજારા", "નાથ"], a:"કાંગસિયા"},
+            {q:"ભવૈયા અને રાવળ મુખ્યત્વે કયા રાજ્યની વિચારતી જાતિઓ છે?", o:["રાજસ્થાન", "મહારાષ્ટ્ર", "ગુજરાત", "મધ્યપ્રદેશ"], a:"ગુજરાત"},
+            {q:"ભારત સરકાર દ્વારા આ જાતિઓના ઉત્કર્ષ માટે કઈ સુવિધાઓ અપાય છે?", o:["શિક્ષણ-આરોગ્ય", "નોકરી", "જમીન", "આપેલ તમામ"], a:"શિક્ષણ-આરોગ્ય"},
+            {q:"વણજારા ભારત અને કયા પ્રદેશ વચ્ચેની કડી હતા?", o:["ચીન", "યુરોપ", "મધ્ય એશિયા", "અમેરિકા"], a:"મધ્ય એશિયા"},
+            {q:"સલાટ લોકો કઈ વસ્તુના કામ માટે જાણીતા છે?", o:["પથ્થર અને ઈંટ", "વાસણ", "કાપડ", "સાપના ખેલ"], a:"પથ્થર અને ઈંટ"}
+        ],
+        "પાઠ 7: ભક્તિ યુગ (ધાર્મિક સમુદાયો)": [
+            {q:"દક્ષિણ ભારતના આલવાર સંતો કોના અનન્ય ભક્ત હતા?", o:["શિવના", "બ્રહ્માના", "વિષ્ણુના", "શક્તિના"], a:"વિષ્ણુના"},
+            {q:"નયનાર સંતો કોની ભક્તિ માટે જાણીતા હતા?", o:["શિવની", "વિષ્ણુની", "રામની", "કૃષ્ણની"], a:"શિવની"},
+            {q:"નિરંજન નિરાકાર ઈશ્વરની ઉપાસના અને એકેશ્વરવાદ પર કોણે ભાર મૂક્યો?", o:["નરસિંહ મહેતાએ", "ગુરુ નાનકે", "મીરાંબાઈએ", "તુલસીદાસે"], a:"ગુરુ નાનકે"},
+            {q:"રાજસ્થાનના કયા સંતે 'રામચરિતમાનસ' જેવો પ્રસિદ્ધ ગ્રંથ લખ્યો છે?", o:["સૂરદાસ", "કબીર", "તુલસીદાસ", "નામદેવ"], a:"તુલસીદાસ"},
+            {q:"કયા સૂફી સંતની દરગાહ અજમેરમાં આવેલી છે જે કોમી એકતાનું પ્રતીક છે?", o:["નિઝામુદ્દીન ઓલિયા", "સલીમ ચિશ્તી", "બાબા ફરીદ", "મોઇનુદ્દીન ચિશ્તી"], a:"મોઇનુદ્દીન ચિશ્તી"},
+            {q:"ગુરુ નાનકના શિષ્યો કયા નામે ઓળખાયા?", o:["કબીરપંથી", "શીખ", "વૈષ્ણવ", "સૂફી"], a:"શીખ"},
+            {q:"નરસિંહ મહેતાએ કઈ ભાષામાં પદો અને ભજનોની રચના કરી હતી?", o:["હિન્દી", "ગુજરાતી", "મરાઠી", "બંગાળી"], a:"ગુજરાતી"},
+            {q:"મીરાંબાઈ કોના પરમ ભક્ત હતા અને તેને 'ગિરધર ગોપાલ' કહેતા?", o:["શ્રી રામ", "હનુમાનજી", "શ્રી કૃષ્ણ", "શિવ"], a:"શ્રી કૃષ્ણ"},
+            {q:"સૂરદાસ કોના શિષ્ય હતા અને વ્રજમાં રહીને પદો રચ્યા હતા?", o:["વલ્લભાચાર્ય", "રામાનંદ", "ચૈતન્ય", "નિમ્બાર્ક"], a:"વલ્લભાચાર્ય"},
+            {q:"કબીરના શિષ્યો કયા નામે ઓળખાયા અને તેમનો સંગ્રહ કયો છે?", o:["કબીરપંથી - બીજક", "શીખ - ગુરુગ્રંથ", "સૂફી", "કોઈ નહીં"], a:"કબીરપંથી - બીજક"},
+            {q:"ચૈતન્ય મહાપ્રભુએ બંગાળમાં કયો મંત્ર ગુંજતો કર્યો હતો?", o:["હરે કૃષ્ણ", "ઓમ નમઃ શિવાય", "જય શ્રી રામ", "અલ્લાહુ અકબર"], a:"હરે કૃષ્ણ"},
+            {q:"શંકરાચાર્યે કયો મત રજૂ કર્યો હતો?", o:["દ્વૈતવાદ", "વિશિષ્ટાદ્વૈત", "અદ્વૈતવાદ", "શુદ્ધાદ્વૈત"], a:"અદ્વૈતવાદ"},
+            {q:"રામાનુજાચાર્યનો જન્મ ક્યાં થયો હતો?", o:["પેરુમ્બતુર", "કાંચી", "મદુરાઈ", "તંજાવુર"], a:"પેરુમ્બતુર"},
+            {q:"જ્ઞાનેશ્વરે ભગવદ્ ગીતા પર કઈ પ્રસિદ્ધ ટીકા લખી છે?", o:["જ્ઞાનેશ્વરી", "ભાષ્ય", "બોધ", "ગીતા સાર"], a:"જ્ઞાનેશ્વરી"},
+            {q:"મહારાષ્ટ્રના કયા સંતે અભંગોની રચના કરી હતી?", o:["નામદેવ", "એકનાથ", "જ્ઞાનેશ્વર", "તુકારામ"], a:"તુકારામ"},
+            {q:"સંત નામદેવ કયા ભગવાનના ભક્ત હતા?", o:["વિઠોબા", "શિવ", "ગણેશ", "રામ"], a:"વિઠોબા"},
+            {q:"નિઝામુદ્દીન ઓલિયા કયા પંથના સૂફી સંત હતા?", o:["ચિશ્તી", "સુહરાવર્દી", "કાદિરી", "નક્શબંદી"], a:"ચિશ્તી"},
+            {q:"ગુજરાતના કયા સંત 'આદિ કવિ' તરીકે ઓળખાય છે?", o:["દયારામ", "નરસિંહ મહેતા", "પ્રેમાનંદ", "અખો"], a:"નરસિંહ મહેતા"},
+            {q:"તુલસીદાસ કયા રાજાના સમકાલીન હતા?", o:["બાબર", "ઔરંગઝેબ", "અકબર", "જહાંગીર"], a:"અકબર"},
+            {q:"ભક્તિ આંદોલને સમાજમાં કયા દૂષણો દૂર કરવામાં મદદ કરી?", o:["જ્ઞાતિવાદ", "ઊંચનીચ", "બંને", "કોઈ નહીં"], a:"બંને"}
+        ],
+        "પાઠ 8: પ્રાદેશિક સંસ્કૃતિનું ઘડતર": [
+            {q:"મલયાલમ ભાષાનો ઉદય 9મી સદીમાં કયા રાજ્યમાં થયો હતો?", o:["તમિલનાડુ", "કર્ણાટક", "કેરળ", "આંધ્ર"], a:"કેરળ"},
+            {q:"ઓરિસ્સામાં આવેલું જગન્નાથ પુરીનું મંદિર કોણે બંધાવ્યું હતું?", o:["Ananta-Varman", "ચોલ રાજા", "પલ્લવ", "હર્ષવર્ધન"], a:"Ananta-Varman"},
+            {q:"કથક નૃત્ય કયા વિસ્તારમાં મુખ્યત્વે વિકસ્યું હતું?", o:["ઉત્તર ભારત", "દક્ષિણ ભારત", "પૂર્વ ભારત", "પશ્ચિમ ભારત"], a:"ઉત્તર ભારત"},
+            {q:"ભરતનાટ્યમ કયા પ્રદેશનું શાસ્ત્રીય નૃત્ય છે?", o:["કેરળ", "આંધ્રપ્રદેશ", "તમિલનાડુ", "ઓરિસ્સા"], a:"તમિલનાડુ"},
+            {q:"કેરળનું કયું શાસ્ત્રીય નૃત્ય પાત્રાભિનય માટે જાણીતું છે?", o:["કથક", "ભરતનાટ્યમ", "કથકલી", "કુચીપુડી"], a:"કથકલી"},
+            {q:"કુચીપુડી નૃત્ય કયા રાજ્ય સાથે સંકળાયેલું છે?", o:["તમિલનાડુ", "આંધ્રપ્રદેશ", "કર્ણાટક", "કેરળ"], a:"આંધ્રપ્રદેશ"},
+            {q:"આસામનો મુખ્ય તહેવાર અને નૃત્ય કયું છે?", o:["બિહુ", "પોંગલ", "ઓણમ", "લોહરી"], a:"બિહુ"},
+            {q:"લઘુચિત્રો કયા માધ્યમ પર દોરવામાં આવતા હતા?", o:["કાપડ અને કાગળ", "દીવાલ", "પથ્થર", "માટી"], a:"કાપડ અને કાગળ"},
+            {q:"હિમાચલ પ્રદેશમાં કઈ ચિત્રકલા શૈલી વિકસી હતી?", o:["બંગાળ શૈલી", "કાંગડા શૈલી", "મુઘલ શૈલી", "જયપુરી શૈલી"], a:"કાંગડા શૈલી"},
+            {q:"શીખ ધર્મમાં હોળી પછીનો કયો તહેવાર મહત્વનો છે?", o:["હોલા મોહલ્લા", "દિવાળી", "વૈશાખી", "લોહરી"], a:"હોલા મોહલ્લા"},
+            {q:"કેરળમાં ઓણમ તહેવાર દરમિયાન કઈ સ્પર્ધા યોજાય છે?", o:["ઘોડદોડ", "નૌકાસ્પર્ધા", "કુસ્તી", "કબડ્ડી"], a:"નૌકાસ્પર્ધા"},
+            {q:"તમિલનાડુનો પોંગલ તહેવાર કયા દેવની પૂજા સાથે જોડાયેલ છે?", o:["સૂર્ય", "ચંદ્ર", "વરુણ", "ઇન્દ્ર"], a:"સૂર્ય"},
+            {q:"પશ્ચિમ બંગાળનો સૌથી મોટો તહેવાર કયો છે?", o:["દિવાળી", "ગણેશ ચતુર્થી", "દુર્ગાપૂજા", "હોળી"], a:"દુર્ગાપૂજા"},
+            {q:"ગુજરાતમાં આદ્યશક્તિની આરાધના માટે કયો તહેવાર ઉજવાય છે?", o:["નવરાત્રી", "જન્માષ્ટમી", "ઉતરાયણ", "દિવાળી"], a:"નવરાત્રી"},
+            {q:"તરણેતરનો મેળો ગુજરાતના કયા જિલ્લામાં ભરાય છે?", o:["રાજકોટ", "સુરેન્દ્રનગર", "જૂનાગઢ", "જામનગર"], a:"સુરેન્દ્રનગર"},
+            {q:"ભાદરવી પૂનમનો મોટો મેળો કયા તીર્થધામમાં ભરાય છે?", o:["અંબાજી", "ડાકોર", "સોમનાથ", "દ્વારકા"], a:"અંબાજી"},
+            {q:"વોઠાનો મેળો કઈ સાત નદીઓના સંગમ સ્થાને ભરાય છે?", o:["સાબરમતી", "હાથમતી", "બંને (સાત નદી સંગમ)", "તાપી"], a:"બંને (સાત નદી સંગમ)"},
+            {q:"બંગાળી ભાષાનો ઉદ્ભવ કઈ પ્રાચીન ભાષામાંથી થયો છે?", o:["હિન્દી", "સંસ્કૃત", "પાલિ", "પ્રાકૃત"], a:"સંસ્કૃત"},
+            {q:"મણિપુરી નૃત્યમાં કયા ભગવાનની લીલાઓ જોવા મળે છે?", o:["શિવ", "ગણેશ", "શ્રી કૃષ્ણ", "રામ"], a:"શ્રી કૃષ્ણ"},
+            {q:"રાજપૂતોની વીરગાથાઓ ગાનાર લોકો કયા નામે ઓળખાતા?", o:["ચારણ-બારોટ", "બ્રાહ્મણ", "ક્ષત્રિય", "ભીલ"], a:"ચારણ-બારોટ"}
+        ],
+        "પાઠ 9: 18મી સદીના રાજકીય શાસકો": [
+            {q:"ઔરંગઝેબનું મૃત્યુ કયા વર્ષમાં થયું હતું?", o:["1700", "1710", "1707", "1720"], a:"1707"},
+            {q:"ઔરંગઝેબ પછી મુઘલ ગાદી પર કયો શાસક આવ્યો?", o:["જહાંદરશાહ", "બહાદુરશાહ", "ફર્રુખસિયર", "શાહઆલમ"], a:"બહાદુરશાહ"},
+            {q:"હૈદરાબાદમાં સ્વતંત્ર રાજ્યની સ્થાપના કોણે કરી હતી?", o:["નિઝામ-ઉલ-મુલ્ક", "સઆદતખાં", "સફદરજંગ", "હૈદર અલી"], a:"નિઝામ-ઉલ-મુલ્ક"},
+            {q:"બંગાળમાં મુર્શિદકુલીખાંએ ક્યારે સ્વતંત્ર રાજ્ય સ્થાપ્યું?", o:["1717", "1707", "1720", "1750"], a:"1717"},
+            {q:"જયપુર શહેરના સ્થાપક કયા રાજપૂત રાજા હતા?", o:["સવાઈ જયસિંહ", "રાણા પ્રતાપ", "પૃથ્વીરાજ", "માનસિંહ"], a:"સવાઈ જયસિંહ"},
+            {q:"સવાઈ જયસિંહે ક્યાં આધુનિક વેધશાળાઓ બંધાવી નહોતી?", o:["મુંબઈ", "દિલ્હી", "જયપુર", "ઉજ્જૈન"], a:"મુંબઈ"},
+            {q:"શીખ ધર્મના કયા ગુરુએ શીખોને લશ્કરી શક્તિમાં ફેરવ્યા હતા?", o:["ગુરુ નાનક", "ગુરુ ગોવિંદ સિંહ", "ગુરુ અર્જુન દેવ", "ગુરુ તેગ બહાદુર"], a:"ગુરુ ગોવિંદ સિંહ"},
+            {q:"મહારાજા રણજીત સિંહે કયા સ્થળો પર વિજય મેળવ્યો હતો?", o:["લાહોર-અમૃતસર", "દિલ્હી-આગ્રા", "લખનૌ", "પૂણે"], a:"લાહોર-અમૃતસર"},
+            {q:"મરાઠા સામ્રાજ્યમાં પ્રથમ પેશ્વા કોણ હતા?", o:["બાલાજી વિશ્વનાથ", "બાજીરાવ ૧", "બાલાજી બાજીરાવ", "માધવરાવ"], a:"બાલાજી વિશ્વનાથ"},
+            {q:"કયો પેશ્વા સૌથી શક્તિશાળી અને 'લડાયક પેશ્વા' ગણાતો?", o:["બાજીરાવ ૧", "બાલાજી વિશ્વનાથ", "બાલાજી બાજીરાવ", "માધવરાવ"], a:"બાજીરાવ ૧"},
+            {q:"પાણીપતનું ત્રીજું યુદ્ધ ક્યારે લડાયું હતું?", o:["1750", "1770", "1761", "1780"], a:"1761"},
+            {q:"પાણીપતનું ત્રીજું યુદ્ધ કોની વચ્ચે થયું હતું?", o:["મરાઠા-અહમદશાહ અબ્દાલી", "મુઘલ-બ્રિટિશ", "બ્રિટિશ-ટીપુ", "શિવાજી-મુઘલ"], a:"મરાઠા-અહમદશાહ અબ્દાલી"},
+            {q:"મૈસૂરમાં હૈદર અલી પછી કોણે શાસન કર્યું?", o:["ટીપુ સુલતાન", "બાજીરાવ", "શિવાજી", "નિઝામ"], a:"ટીપુ સુલતાન"},
+            {q:"કયા શાસકને 'મૈસૂરના વાઘ' તરીકે ઓળખવામાં આવે છે?", o:["હૈદર અલી", "ટીપુ સુલતાન", "અહમદશાહ", "નાદિરશાહ"], a:"ટીપુ સુલતાન"},
+            {q:"ચોથા મૈસૂર વિગ્રહ દરમિયાન કોનું મૃત્યુ થયું હતું?", o:["હૈદર અલી", "ટીપુ સુલતાન", "બાજીરાવ", "માધવરાવ"], a:"ટીપુ સુલતાન"},
+            {q:"ઈરાનના કયા શાસકે 1739માં ભારત પર આક્રમણ કર્યું હતું?", o:["નાદિરશાહ", "અહમદશાહ", "શાહઆલમ", "તૈમૂર લંગ"], a:"નાદિરશાહ"},
+            {q:"જાટ સામ્રાજ્યમાં કયો રાજા સૌથી શક્તિશાળી હતો?", o:["ચુરામન", "સૂરજમલ", "બદનસિંહ", "રણજીત સિંહ"], a:"સૂરજમલ"},
+            {q:"શિવાજીના પૌત્ર સાહુને જેલમાંથી કોણે મુક્ત કર્યો હતો?", o:["ઔરંગઝેબ", "બહાદુરશાહ", "જહાંદરશાહ", "શાહજહાં"], a:"બહાદુરશાહ"},
+            {q:"નાદિરશાહ ભારતમાંથી કઈ કિંમતી વસ્તુ લઈ ગયો હતો?", o:["મયુરાસન", "કોહિનૂર હીરો", "બંને", "કોઈ નહીં"], a:"બંને"},
+            {q:"18મી સદીમાં ભારતની રાજકીય સ્થિતિ કેવી હતી?", o:["એકતા", "અરાજકતા", "શાંતિ", "વિકાસ"], a:"અરાજકતા"}
+        ]
+    }
+};
+
+// --- VARIABLE DECLARATIONS: ગેમ મેનેજમેન્ટ વેરિયેબલ્સ ---
+let quiz=[], current=0, score=0, timeLeft=20, timerId, answered=[];
+let isAlreadyPlayed = false;
+
+// --- SHUFFLE FUNCTION: ડેટા આડોઅવળો કરવા માટે ---
+function shuffleArray(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
+
+// --- CHAPTER LOADER: પાઠનું લિસ્ટ લોડ કરવા માટે ---
+function loadChapters(){
+    const sub=document.getElementById("subject").value;
+    const ch=document.getElementById("chapter");
+    ch.innerHTML='<option value="">પાઠ પસંદ કરો</option>';
+    if(sub && DATA[sub]) Object.keys(DATA[sub]).forEach(k=>ch.innerHTML+=`<option value="${k}">${k}</option>`);
+}
+
+// --- INITIAL CHECK: ક્વિઝ શરૂ કરતા પહેલાની તપાસ ---
+function checkAndStart(){
+    const roll=document.getElementById("roll").value.trim();
+    const name=document.getElementById("studentName").value.trim();
+    const sub=document.getElementById("subject").value;
+    const ch=document.getElementById("chapter").value;
+    if(!roll||!name||!sub||!ch){alert("બધી માહિતી ભરો!"); return;}
+
+    database.ref('results').once('value', snap => {
+        isAlreadyPlayed = false;
+        snap.forEach(child => {
+            const d = child.val();
+            if(String(d.roll) === String(roll) && d.ch === ch) isAlreadyPlayed = true;
+        });
+        if(isAlreadyPlayed) alert("તમે અગાઉ આ ક્વિઝ રમી લીધી છે. પ્રેક્ટિસ માટે રમી શકાય, પણ સ્કોર સેવ થશે નહીં.");
+        startQuiz();
+    });
+}
+
+// --- START QUIZ: ક્વિઝ શરૂ કરવાનું મુખ્ય ફંક્શન (સફલ સાથે) ---
+function startQuiz(){
+    const sub=document.getElementById("subject").value, ch=document.getElementById("chapter").value;
+    // પ્રશ્નો સફલ કરીને લોડ કરવા
+    quiz=shuffleArray([...(DATA[sub][ch]||[])]);
+    
+    current=0; score=0;
+    answered=new Array(quiz.length).fill(false);
+    document.getElementById("home").classList.add("hidden");
+    document.getElementById("quiz").classList.remove("hidden");
+    createPalette(); 
+    showQuestion();
+}
+
+// --- QUESTION PALETTE: પ્રશ્ન ક્રમાંક બટન્સ બનાવવા ---
+function createPalette(){
+    const pal=document.getElementById("palette"); pal.innerHTML="";
+    quiz.forEach((_,i)=>{
+        const btn=document.createElement("button");
+        btn.textContent=i+1; btn.id="p"+i;
+        btn.onclick=()=> { if(answered[i]) { current=i; showQuestion(); } };
+        pal.appendChild(btn);
+    });
+}
+
+// --- TIMER FUNCTION: સમય મર્યાદા મેનેજમેન્ટ ---
+function startTimer(){
+    if(timerId) clearInterval(timerId);
+    timeLeft = 20;
+    document.getElementById("timer").textContent=`⏱ ${timeLeft}`;
+    timerId=setInterval(()=>{
+        timeLeft--;
+        document.getElementById("timer").textContent=`⏱ ${timeLeft}`;
+        if(timeLeft <= 0) { clearInterval(timerId); autoSkip(); }
+    },1000);
+}
+
+// --- AUTO SKIP: સમય પૂરો થાય ત્યારે આપોઆપ આગળ વધવું ---
+function autoSkip() {
+    if(!answered[current]) {
+        answered[current] = true;
+        document.getElementById("p"+current).style.background="#bbb";
+        document.getElementById('sound-wrong').currentTime = 0;
+        document.getElementById('sound-wrong').play();
+        setTimeout(nextStep, 1000);
+    }
+}
+
+// --- SHOW QUESTION: પ્રશ્ન અને ઓપ્શન ડિસ્પ્લે કરવા (સફલ સાથે) ---
+function showQuestion(){
+    document.getElementById("progress").textContent=`પ્રશ્ન ${current+1}/${quiz.length}`;
+    document.getElementById("q").textContent=quiz[current].q;
+    document.querySelectorAll("#palette button").forEach(b=>b.style.boxShadow="none");
+    document.getElementById("p"+current).style.boxShadow="0 0 10px black";
+    
+    const opts=document.getElementById("opts"); opts.innerHTML="";
+    
+    // ઓપ્શન પણ સફલ કરીને બતાવવા
+    let shuffledOptions = shuffleArray([...quiz[current].o]);
+    
+    shuffledOptions.forEach(opt=>{
+        const d=document.createElement("div"); d.className="option"; d.textContent=opt;
+        d.onclick=()=>checkAnswer(opt,d); opts.appendChild(d);
+    });
+    
+    if(!answered[current]) startTimer();
+    else { clearInterval(timerId); document.getElementById("timer").textContent = "પૂર્ણ"; }
+}
+
+// --- CHECK ANSWER: જવાબ સાચો છે કે ખોટો તેની તપાસ (સાઉન્ડ સાથે) ---
+function checkAnswer(selected, el){
+    if(answered[current]) return;
+    clearInterval(timerId);
+    answered[current]=true;
+    const isCorrect = (selected === quiz[current].a);
+    
+    if(isCorrect){ 
+        document.getElementById('sound-correct').currentTime = 0;
+        document.getElementById('sound-correct').play();
+        score++; el.classList.add("right"); 
+        document.getElementById("p"+current).style.background="#2ecc71"; 
+        document.getElementById("p"+current).style.color="white";
+    } else { 
+        document.getElementById('sound-wrong').currentTime = 0;
+        document.getElementById('sound-wrong').play();
+        el.classList.add("wrong"); 
+        document.getElementById("p"+current).style.background="#e74c3c"; 
+        document.getElementById("p"+current).style.color="white";
+        [...document.querySelectorAll(".option")].forEach(o=>{if(o.textContent===quiz[current].a)o.classList.add("right")});
+    }
+    setTimeout(nextStep, 1200);
+}
+
+// --- NEXT STEP: આગલા પ્રશ્ન પર જવું ---
+function nextStep() { if(++current < quiz.length) showQuestion(); else finishQuiz(); }
+
+// --- FINISH QUIZ: ક્વિઝ પૂર્ણ કરવી અને ડેટા સેવ કરવો ---
+function finishQuiz(){
+    clearInterval(timerId);
+    const sName=document.getElementById("studentName").value, roll=document.getElementById("roll").value, ch=document.getElementById("chapter").value;
+    const percent=Math.round((score/quiz.length)*100), date=new Date().toLocaleString('gu-IN');
+    if(!isAlreadyPlayed) database.ref('results').push({ roll: parseInt(roll), name: sName, ch, score: score+"/"+quiz.length, percent: percent+"%", date });
+    document.getElementById("quiz").classList.add("hidden");
+    document.getElementById("result").classList.remove("hidden");
+    document.getElementById("result-container").innerHTML=`<h2 style="color:#4a148c;">🌟 ${sName} નું પરિણામ 🌟</h2><p>સ્કોર: ${score}/${quiz.length}</p><p>ટકા: ${percent}%</p>`;
+}
+
+// --- TEACHER LOGIN FUNCTIONS: શિક્ષક વિભાગ માટે ---
+function openTeacher(){ document.getElementById("home").classList.add("hidden"); document.getElementById("teacherLoginBox").classList.remove("hidden"); }
+function teacherLogin(){
+    if(document.getElementById("tpass").value==="admin123"){
+        document.getElementById("teacherLoginBox").classList.add("hidden");
+        document.getElementById("teacher").classList.remove("hidden");
+        loadTable();
+    } else alert("ખોટો પાસવર્ડ!");
+}
+
+// --- DATA TABLE LOADER: પરિણામ પત્રક લોડ કરવું ---
+function loadTable(){
+    const body=document.getElementById("table-body");
+    database.ref('results').orderByChild('roll').on('value', snap => {
+        body.innerHTML=""; let count = 0;
+        snap.forEach(child => {
+            const r=child.val();
+            body.innerHTML+=`<tr><td>${r.roll}</td><td>${r.name}</td><td>${r.ch}</td><td>${r.score}</td><td>${r.percent}</td><td>${r.date}</td></tr>`;
+            count++;
+        });
+        document.getElementById("studentCount").textContent = count;
+    });
+}
+
+// --- EXCEL DOWNLOAD: એક્સેલ ફાઈલ ડાઉનલોડ કરવા માટે ---
+function downloadExcel(){
+    database.ref('results').orderByChild('roll').once('value', snap => {
+        if (!snap.exists()) { alert("કોઈ ડેટા નથી!"); return; }
+        let arr = [];
+        snap.forEach(c => {
+            const r = c.val();
+            arr.push({
+                "રોલ નંબર": r.roll,
+                "વિદ્યાર્થીનું નામ": r.name,
+                "પાઠ": r.ch,
+                "સ્કોર": r.score,
+                "ટકાવારી": r.percent,
+                "તારીખ": r.date
+            });
+        });
+        const ws = XLSX.utils.json_to_sheet(arr);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Results");
+        XLSX.writeFile(wb, "School_Quiz_Results.xlsx");
+    });
+}
+
+// --- UTILITY FUNCTIONS: ડેટા ક્લિયર અને હોમ પેજ માટે ---
+function clearAllResults(){ if(confirm("બધો ડેટા ડિલીટ કરવો છે?")) database.ref('results').remove(); }
+function goHome(){ location.reload(); }
+
+// --- FOOTER PROTECTION: શાળા અને કર્તાની માહિતી ---
+(function(){
+let a=[82,65,83,85,76,66,72,65,73,32,82,65,74,80,85,82,65], b=[83,104,114,101,101,32,80,97,110,115,97,100,97,32,65,110,117,112,97,109,32,80,114,105,109,97,114,121,32,83,99,104,111,111,108];
+function decode(arr){ return arr.map(x=>String.fromCharCode(x)).join(''); }
+let footerHTML = "<p style='color:#0561af;font-family:Arial;font-weight:bold;'>" + decode(a) + " , <span style='color:#555;font-weight:normal;'>" + decode(b) + "</span></p>";
+document.querySelectorAll('.card').forEach(card=>{ let d=document.createElement("div"); d.className="p_info"; d.innerHTML=footerHTML; card.appendChild(d); });
+})();
+</script>
+</body>
+</html>
